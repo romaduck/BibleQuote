@@ -547,12 +547,14 @@ type
     procedure tbtnQuickSearchClick(Sender: TObject);
     procedure tbtnQuickSearchPrevClick(Sender: TObject);
     procedure tbtnQuickSearchNextClick(Sender: TObject);
-    procedure tbtnReferenceInfoClick(Sender: TObject);
     procedure tedtReferenceDblClick(Sender: TObject);
     procedure tbtnReferenceClick(Sender: TObject);
     procedure tedtReferenceChange(Sender: TObject);
     procedure tedtReferenceEnter(Sender: TObject);
     procedure tedtReferenceKeyPress(Sender: TObject; var Key: Char);
+
+    procedure tbtnReferenceInfoClick(Sender: TObject);
+    procedure ShowReferenceInfo(showRefInfo: Boolean);
 
     procedure vdtModulesGetText(
       Sender: TBaseVirtualTree;
@@ -763,7 +765,7 @@ type
     procedure ToggleQuickSearchPanel(const enable: Boolean);
     procedure SearchForward();
     procedure SearchBackward();
-    procedure ShowReferenceInfo();
+//    procedure ShowReferenceInfo();
     procedure GoReference();
 
   public
@@ -4180,6 +4182,7 @@ begin
   finally
     mInterfaceLock := false;
     Screen.Cursor := crDefault;
+    tbtnReferenceInfo.Down := false;
   end;
 end; // proc processcommand
 
@@ -7412,7 +7415,7 @@ end;
 
 procedure TMainForm.tbtnReferenceInfoClick(Sender: TObject);
 begin
-  ShowReferenceInfo();
+  ShowReferenceInfo(tbtnReferenceInfo.Down);
 end;
 
 procedure TMainForm.tbtnResolveLinksClick(Sender: TObject);
@@ -7854,40 +7857,39 @@ begin
   end;
 end;
 
-procedure TMainForm.ShowReferenceInfo;
+procedure TMainForm.ShowReferenceInfo(showRefInfo: Boolean);
 var
   Lines: string;
   cc: Integer;
   i: Integer;
+  savePosition: integer;
+  vti: TViewTabInfo;
+
 begin
-  Lines := '<body bgcolor=#EBE8E2>';
-  AddLine(Lines, '<h2>' + MainBook.Name + '</h2>');
-  cc := MainBook.Categories.Count - 1;
-
-  if cc >= 0 then
+  vti := GetActiveTabInfo();
+  if showRefInfo = True then
   begin
-    AddLine(Lines, '<font Size=-1><b>Метки:</b><br><i>' + TokensToStr(MainBook.Categories, '<br>     ', false) + '</i></font><br>');
-  end;
+    Lines := '<body bgcolor=#EBE8E2>';
+    AddLine(Lines, '<h2>' + MainBook.Name + '</h2>');
+    cc := MainBook.Categories.Count - 1;
 
-  AddLine(Lines, '<b>Location:</b> ' + Copy(MainBook.path, 1, Length(MainBook.path) - 1) + ' <a href="editini=' + MainBook.path + 'bibleqt.ini">ini</a><br>');
+    if cc >= 0 then
+    begin
+      AddLine(Lines, '<font Size=-1><b>Метки:</b><br><i>' + TokensToStr(MainBook.Categories, '<br>     ', false) + '</i></font><br>');
+    end;
 
-  for i := 1 to MainBook.BookQty do
-    AddLine(Lines, '<b>' + MainBook.FullNames[i] + ':</b> ' + MainBook.ShortNamesVars[i] + '<br>');
-  AddLine(Lines, '<br><br><br>');
+    AddLine(Lines, '<b>Location:</b> ' + Copy(MainBook.path, 1, Length(MainBook.path) - 1) + ' <a href="editini=' + MainBook.path + 'bibleqt.ini">ini</a><br>');
 
-  if not Assigned(CopyrightForm) then
-    CopyrightForm := TCopyrightForm.Create(self);
-  CopyrightForm.lblModName.Caption := MainBook.Name;
+    for i := 1 to MainBook.BookQty do
+      AddLine(Lines, '<b>' + MainBook.FullNames[i] + ':</b> ' + MainBook.ShortNamesVars[i] + '<br>');
+    AddLine(Lines, '<br><br><br>');
 
-  if Length(Trim(MainBook.Copyright)) = 0 then
-    CopyrightForm.lblCopyRightNotice.Caption := Lang.Say('PublicDomainText')
+    bwrHtml.LoadFromString(Lines);
+  end
   else
-    CopyrightForm.lblCopyRightNotice.Caption := MainBook.Copyright;
-
-  CopyrightForm.Caption := MainBook.Name;
-  CopyrightForm.bwrCopyright.LoadFromString(Lines);
-  CopyrightForm.ActiveControl := CopyrightForm.bwrCopyright;
-  CopyrightForm.ShowModal;
+  begin
+    ProcessCommand(vti.Location, TbqHLVerseOption(ord(vti[vtisHighLightVerses])));
+  end;
 end;
 
 procedure TMainForm.SearchBackward();
